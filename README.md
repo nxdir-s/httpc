@@ -1,6 +1,6 @@
 # HttpC
 
-This repository contains an `net/http` client wrapper that can be configured with rate limiting, retries and Open Telemetry instrumentation.
+This repository contains an `net/http` client wrapper that handles authentication and can be configured with rate limiting, retries and Open Telemetry instrumentation.
 
 Example client setup
 
