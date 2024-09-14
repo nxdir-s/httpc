@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/throttled/throttled/v2"
-	"github.com/throttled/throttled/v2/store/memstore"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/oauth2/clientcredentials"
@@ -26,14 +25,12 @@ const (
 )
 
 type Config struct {
-	TlsConfig      *tls.Config
-	Timeout        int
-	BaseUrl        string
-	OTelEnabled    bool
-	RetryEnabled   bool
-	RetryMax       int
-	RateLimit      int
-	DefaultHeaders map[string]string
+	TlsConfig    *tls.Config
+	BaseUrl      string
+	Timeout      int
+	OTelEnabled  bool
+	RetryEnabled bool
+	RetryMax     int
 }
 
 type Client struct {
@@ -70,26 +67,11 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOption) (*Client,
 		},
 	}
 
-	if cfg.RateLimit != 0 {
-		store, err := memstore.NewCtx(MaxRateLimitKeys)
+	for _, applyOpt := range opts {
+		err := applyOpt(client)
 		if err != nil {
 			return nil, err
 		}
-
-		quota := throttled.RateQuota{
-			MaxRate: throttled.PerMin(cfg.RateLimit),
-		}
-
-		rateLimiter, err := throttled.NewGCRARateLimiterCtx(store, quota)
-		if err != nil {
-			return nil, err
-		}
-
-		client.RateLimiter = rateLimiter
-	}
-
-	for _, applyOption := range opts {
-		applyOption(client)
 	}
 
 	return client, nil
