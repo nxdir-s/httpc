@@ -40,7 +40,7 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		bodyBytes, err := io.ReadAll(req.Body)
 		if err != nil {
-			return nil, CopyError{err}
+			return nil, &CopyError{err}
 		}
 
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))

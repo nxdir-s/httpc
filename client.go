@@ -81,7 +81,7 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOption) (*Client,
 func (c *Client) Get(ctx context.Context, resource string, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -117,7 +117,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	defer resp.Body.Close()
@@ -126,13 +126,13 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	if decoded != nil {
 		err = json.NewDecoder(resp.Body).Decode(decoded)
 		if err != nil {
-			return nil, DecodeError{err}
+			return nil, &DecodeError{err}
 		}
 	}
 
@@ -143,7 +143,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 func (c *Client) Post(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -179,7 +179,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	defer resp.Body.Close()
@@ -188,13 +188,13 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	if decoded != nil {
 		err = json.NewDecoder(resp.Body).Decode(decoded)
 		if err != nil {
-			return nil, DecodeError{err}
+			return nil, &DecodeError{err}
 		}
 	}
 
@@ -205,7 +205,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 func (c *Client) Put(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -241,7 +241,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	defer resp.Body.Close()
@@ -250,13 +250,13 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	if decoded != nil {
 		err = json.NewDecoder(resp.Body).Decode(decoded)
 		if err != nil {
-			return nil, DecodeError{err}
+			return nil, &DecodeError{err}
 		}
 	}
 
@@ -267,7 +267,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -303,7 +303,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	defer resp.Body.Close()
@@ -312,13 +312,13 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	if decoded != nil {
 		err = json.NewDecoder(resp.Body).Decode(decoded)
 		if err != nil {
-			return nil, DecodeError{err}
+			return nil, &DecodeError{err}
 		}
 	}
 
@@ -329,7 +329,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -365,7 +365,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	defer resp.Body.Close()
@@ -374,13 +374,13 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	if decoded != nil {
 		err = json.NewDecoder(resp.Body).Decode(decoded)
 		if err != nil {
-			return nil, DecodeError{err}
+			return nil, &DecodeError{err}
 		}
 	}
 
@@ -391,7 +391,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 func (c *Client) Stream(ctx context.Context, method string, resource string, body io.Reader, headers map[string]string) (io.Reader, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, InvalidResource{err}
+		return nil, &InvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -427,14 +427,14 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, RequestError{err}
+		return nil, &RequestError{err}
 	}
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
 
-		return nil, BadStatusCode{errBody.String()}
+		return nil, &BadStatusCode{errBody.String()}
 	}
 
 	pr, pw := io.Pipe()
