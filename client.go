@@ -67,9 +67,8 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOption) (*Client,
 		},
 	}
 
-	for _, applyOpt := range opts {
-		err := applyOpt(client)
-		if err != nil {
+	for _, opt := range opts {
+		if err := opt(client); err != nil {
 			return nil, err
 		}
 	}
