@@ -118,7 +118,6 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 	if err != nil {
 		return nil, &RequestError{err}
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
@@ -180,7 +179,6 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 	if err != nil {
 		return nil, &RequestError{err}
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
@@ -242,7 +240,6 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 	if err != nil {
 		return nil, &RequestError{err}
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
@@ -304,7 +301,6 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 	if err != nil {
 		return nil, &RequestError{err}
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
@@ -366,7 +362,6 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 	if err != nil {
 		return nil, &RequestError{err}
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
@@ -432,6 +427,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
 		return nil, &BadStatusCode{errBody.String()}
 	}
