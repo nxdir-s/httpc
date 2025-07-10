@@ -394,7 +394,6 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 	if err != nil {
 		return nil, &ErrRequest{err}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
