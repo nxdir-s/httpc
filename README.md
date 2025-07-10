@@ -25,18 +25,20 @@ GET Request
 
 ```go
 var response Response
-_, err := client.Get(ctx, "/resource", nil, &response)
+resp, err := client.Get(ctx, "/resource", nil, &response)
 if err != nil {
     // handle error
 }
+defer resp.Body.Close()
 ```
 
 POST Request
 
 ```go
 var response Response
-_, err := client.Post(ctx, "/resource", bytes.NewReader(body), nil, &response)
+resp, err := client.Post(ctx, "/resource", bytes.NewReader(body), nil, &response)
 if err != nil {
     // handle error
 }
+defer resp.Body.Close()
 ```
