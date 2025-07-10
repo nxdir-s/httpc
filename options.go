@@ -30,12 +30,19 @@ func WithDefaultHeaders(headers map[string]string) ClientOption {
 }
 
 // WithCredentials sets up oauth2 and replaces the default http client
-func WithCredentials(ctx context.Context, clientId, key, tokenUrl string) ClientOption {
+func WithCredentials(ctx context.Context, clientId, key, baseUrl, resource string) ClientOption {
 	return func(c *Client) error {
-		authUrl, err := url.ParseRequestURI(tokenUrl)
+		baseUrl, err := url.ParseRequestURI(baseUrl)
 		if err != nil {
 			return err
 		}
+
+		authResource, err := url.ParseRequestURI(resource)
+		if err != nil {
+			return err
+		}
+
+		authUrl := baseUrl.ResolveReference(authResource)
 
 		credentials := &clientcredentials.Config{
 			ClientID:     clientId,

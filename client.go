@@ -8,10 +8,12 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"time"
 
 	"github.com/throttled/throttled/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/oauth2/clientcredentials"
@@ -23,6 +25,38 @@ const (
 	MaxIdleConns     int = 100
 	MaxConnsPerHost  int = 100
 )
+
+type ErrStatusCode struct {
+	msg *bytes.Buffer
+}
+
+func (e *ErrStatusCode) Error() string {
+	return "recieved bad status code: " + e.msg.String()
+}
+
+type ErrInvalidResource struct {
+	err error
+}
+
+func (e *ErrInvalidResource) Error() string {
+	return "error parsing resource: " + e.err.Error()
+}
+
+type ErrDecode struct {
+	err error
+}
+
+func (e *ErrDecode) Error() string {
+	return "failed to decode response body: " + e.err.Error()
+}
+
+type ErrRequest struct {
+	err error
+}
+
+func (e *ErrRequest) Error() string {
+	return "error making HTTP request: " + e.err.Error()
+}
 
 type Config struct {
 	TlsConfig    *tls.Config
@@ -76,11 +110,11 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOption) (*Client,
 	return client, nil
 }
 
-// Get makes a GET request to the supplied endpoint and returns the response. If a struct pointer is supplied, the response body will be decoded into it
-func (c *Client) Get(ctx context.Context, resource string, headers map[string]string, decoded interface{}) (*http.Response, error) {
+// Get makes a GET request to the supplied endpoint and returns the response.
+func (c *Client) Get(ctx context.Context, resource string, headers map[string]string) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -116,22 +150,15 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
-	}
-
-	if decoded != nil {
-		err = json.NewDecoder(resp.Body).Decode(decoded)
-		if err != nil {
-			return nil, &DecodeError{err}
-		}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	return resp, nil
@@ -141,7 +168,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 func (c *Client) Post(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -177,21 +204,21 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	if decoded != nil {
-		err = json.NewDecoder(resp.Body).Decode(decoded)
-		if err != nil {
-			return nil, &DecodeError{err}
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
 		}
 	}
 
@@ -202,7 +229,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 func (c *Client) Put(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -238,21 +265,21 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	if decoded != nil {
-		err = json.NewDecoder(resp.Body).Decode(decoded)
-		if err != nil {
-			return nil, &DecodeError{err}
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
 		}
 	}
 
@@ -263,7 +290,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -299,21 +326,21 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	if decoded != nil {
-		err = json.NewDecoder(resp.Body).Decode(decoded)
-		if err != nil {
-			return nil, &DecodeError{err}
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
 		}
 	}
 
@@ -324,7 +351,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -360,21 +387,22 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 		resp.Write(errBody)
+		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	if decoded != nil {
-		err = json.NewDecoder(resp.Body).Decode(decoded)
-		if err != nil {
-			return nil, &DecodeError{err}
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
 		}
 	}
 
@@ -385,7 +413,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 func (c *Client) Stream(ctx context.Context, method string, resource string, body io.Reader, headers map[string]string) (io.Reader, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
-		return nil, &InvalidResource{err}
+		return nil, &ErrInvalidResource{err}
 	}
 
 	fullUrl := c.BaseUrl.ResolveReference(pathUrl)
@@ -421,7 +449,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 
 	resp, err := c.Http.Do(req)
 	if err != nil {
-		return nil, &RequestError{err}
+		return nil, &ErrRequest{err}
 	}
 
 	if resp.StatusCode/10 != 20 {
@@ -429,7 +457,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &BadStatusCode{errBody.String()}
+		return nil, &ErrStatusCode{errBody}
 	}
 
 	pr, pw := io.Pipe()
@@ -474,6 +502,12 @@ func getRoundTripper(cfg *Config, timeout int) (http.RoundTripper, error) {
 			transport,
 			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
 			otelhttp.WithMeterProvider(otel.GetMeterProvider()),
+			otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
+				return otelhttptrace.NewClientTrace(ctx,
+					otelhttptrace.WithoutSubSpans(),
+					otelhttptrace.WithTracerProvider(otel.GetTracerProvider()),
+				)
+			}),
 		)
 	}
 
