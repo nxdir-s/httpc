@@ -155,6 +155,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
@@ -209,6 +210,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
@@ -270,6 +272,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
@@ -331,6 +334,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
@@ -393,6 +397,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
@@ -454,6 +459,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 
 	if resp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
+
 		resp.Write(errBody)
 		resp.Body.Close()
 
