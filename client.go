@@ -498,8 +498,7 @@ func getRoundTripper(cfg *Config, timeout int) (http.RoundTripper, error) {
 	transport = defaultTransport
 
 	if cfg.RetryEnabled {
-		transport, err = NewRetryTransport(defaultTransport, cfg.RetryMax)
-		if err != nil {
+		if transport, err = NewRetryTransport(defaultTransport, cfg.RetryMax); err != nil {
 			return nil, err
 		}
 	}
