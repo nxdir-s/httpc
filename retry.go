@@ -52,10 +52,9 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for shouldRetry(resp, err) && retries < t.retryMax {
 		time.Sleep(backoff(retries))
 
-		// discard response body to reuse connection
+		// drain response body to reuse connection
 		if resp.Body != nil {
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			drainBody(resp.Body)
 		}
 
 		if req.Body != nil {
@@ -68,6 +67,16 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	return resp, err
+}
+
+func drainBody(body io.ReadCloser) error {
+	defer body.Close()
+
+	if _, err := io.ReadAll(body); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // shouldRetry checks for errors and non 2XX status codes to determine whether to retry
