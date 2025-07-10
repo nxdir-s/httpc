@@ -27,7 +27,8 @@ const (
 )
 
 type ErrStatusCode struct {
-	msg *bytes.Buffer
+	code int
+	msg  *bytes.Buffer
 }
 
 func (e *ErrStatusCode) Error() string {
@@ -159,7 +160,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	return resp, nil
@@ -214,7 +215,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	if decoded != nil {
@@ -276,7 +277,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	if decoded != nil {
@@ -338,7 +339,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	if decoded != nil {
@@ -401,7 +402,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	if decoded != nil {
@@ -463,7 +464,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 		resp.Write(errBody)
 		resp.Body.Close()
 
-		return nil, &ErrStatusCode{errBody}
+		return nil, &ErrStatusCode{resp.StatusCode, errBody}
 	}
 
 	pr, pw := io.Pipe()
