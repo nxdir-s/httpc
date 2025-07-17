@@ -78,7 +78,7 @@ func TestGet(t *testing.T) {
 	for i, tt := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 
-			resp, err := client.Get(ctx, tt.endpoint, tt.headers)
+			resp, err := client.Get(ctx, tt.endpoint, tt.headers, nil)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedErr, err)
