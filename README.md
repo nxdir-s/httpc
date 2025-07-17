@@ -42,3 +42,36 @@ if err != nil {
 }
 defer resp.Body.Close()
 ```
+
+PUT Request
+
+```go
+var response Response
+resp, err := client.Put(ctx, "/resource", bytes.NewReader(body), nil, &response)
+if err != nil {
+    // handle error
+}
+defer resp.Body.Close()
+```
+
+DELETE Request
+
+```go
+var response Response
+resp, err := client.Delete(ctx, "/resource", bytes.NewReader(body), nil, &response)
+if err != nil {
+    // handle error
+}
+defer resp.Body.Close()
+```
+
+PATCH Request
+
+```go
+var response Response
+resp, err := client.Patch(ctx, "/resource", bytes.NewReader(body), nil, &response)
+if err != nil {
+    // handle error
+}
+defer resp.Body.Close()
+```
