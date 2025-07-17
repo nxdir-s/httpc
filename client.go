@@ -159,8 +159,8 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 	return client, nil
 }
 
-// Get makes a GET request to the supplied endpoint and returns the response.
-func (c *Client) Get(ctx context.Context, resource string, headers map[string]string) (*http.Response, error) {
+// Get makes a GET request to the supplied endpoint and returns the response. If a struct pointer is supplied, the response body will be decoded into it
+func (c *Client) Get(ctx context.Context, resource string, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
 	if err != nil {
 		return nil, &ErrInvalidResource{err}
@@ -202,6 +202,13 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 		}
 
 		return nil, &ErrStatusCode{resp.StatusCode, errBody}
+	}
+
+	if decoded != nil {
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
+		}
 	}
 
 	return resp, nil
