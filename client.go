@@ -14,8 +14,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/throttled/throttled/v2"
-	"github.com/throttled/throttled/v2/store/memstore"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -64,14 +62,6 @@ func (e *ErrRequest) Error() string {
 	return "error making HTTP request: " + e.err.Error()
 }
 
-type ErrRateLimit struct {
-	err error
-}
-
-func (e *ErrRateLimit) Error() string {
-	return "error checking rate limit: " + e.err.Error()
-}
-
 type ErrCopy struct {
 	err error
 }
@@ -96,74 +86,35 @@ const (
 	MaxConnsPerHost  int = 100
 )
 
-type ClientOpt func(c *Client) error
+type ClientOpt func(c *Client)
 
 // WithCustomClient replaces the default http client with the supplied one
 func WithCustomClient(client *http.Client) ClientOpt {
-	return func(c *Client) error {
+	return func(c *Client) {
 		c.http = client
-		return nil
 	}
 }
 
 // WithDefaultHeaders adds default headers to the client
 func WithDefaultHeaders(headers map[string]string) ClientOpt {
-	return func(c *Client) error {
+	return func(c *Client) {
 		c.headers = headers
-		return nil
 	}
 }
 
 // WithCredentials sets up oauth2 and replaces the default http client
-func WithCredentials(ctx context.Context, id string, secret string, baseUrl string, resource string, scopes ...string) ClientOpt {
-	return func(c *Client) error {
-		baseUrl, err := url.ParseRequestURI(baseUrl)
-		if err != nil {
-			return err
-		}
-
-		authResource, err := url.ParseRequestURI(resource)
-		if err != nil {
-			return err
-		}
-
-		authUrl := baseUrl.ResolveReference(authResource)
-
+func WithCredentials(ctx context.Context, id string, secret string, authUrl string, scopes ...string) ClientOpt {
+	return func(c *Client) {
 		credentials := &clientcredentials.Config{
 			ClientID:     id,
 			ClientSecret: secret,
-			TokenURL:     authUrl.String(),
+			TokenURL:     authUrl,
 		}
 
 		credentials.Scopes = append(credentials.Scopes, scopes...)
 
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, c.http)
 		c.http = credentials.Client(ctx)
-
-		return nil
-	}
-}
-
-// WithRateLimiter configures a rate limiter with the supplied limit (per minute)
-func WithRateLimiter(rateLimit int) ClientOpt {
-	return func(c *Client) error {
-		store, err := memstore.NewCtx(MaxRateLimitKeys)
-		if err != nil {
-			return err
-		}
-
-		quota := throttled.RateQuota{
-			MaxRate: throttled.PerMin(rateLimit),
-		}
-
-		rateLimiter, err := throttled.NewGCRARateLimiterCtx(store, quota)
-		if err != nil {
-			return err
-		}
-
-		c.rateLimiter = rateLimiter
-
-		return nil
 	}
 }
 
@@ -178,12 +129,10 @@ type Config struct {
 }
 
 type Client struct {
-	http        *http.Client
-	credentials *clientcredentials.Config
-	baseUrl     *url.URL
-	rateLimiter *throttled.GCRARateLimiterCtx
-	headers     map[string]string
-	limit       int64
+	http    *http.Client
+	baseUrl *url.URL
+	headers map[string]string
+	limit   int64
 }
 
 // NewClient creates a new Client
@@ -198,25 +147,17 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 		timeout = cfg.Timeout
 	}
 
-	var httpTransport http.RoundTripper
-	httpTransport, err = getRoundTripper(cfg, timeout)
-	if err != nil {
-		return nil, err
-	}
-
 	client := &Client{
 		baseUrl: baseUrl,
 		http: &http.Client{
 			Timeout:   time.Duration(timeout),
-			Transport: httpTransport,
+			Transport: getRoundTripper(cfg, timeout),
 		},
 		limit: cfg.ReadByteLimit,
 	}
 
 	for _, opt := range opts {
-		if err := opt(client); err != nil {
-			return nil, err
-		}
+		opt(client)
 	}
 
 	return client, nil
@@ -230,22 +171,6 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 	}
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
-
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, &ErrRateLimit{err}
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullUrl.String(), nil)
 	if err != nil {
@@ -294,22 +219,6 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 	}
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
-
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, &ErrRateLimit{err}
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullUrl.String(), body)
 	if err != nil {
@@ -366,22 +275,6 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
 
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, &ErrRateLimit{err}
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fullUrl.String(), body)
 	if err != nil {
 		return nil, &ErrNewRequest{err}
@@ -436,22 +329,6 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 	}
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
-
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, err
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fullUrl.String(), body)
 	if err != nil {
@@ -508,22 +385,6 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
 
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, err
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, fullUrl.String(), body)
 	if err != nil {
 		return nil, err
@@ -579,22 +440,6 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
 
-	if c.rateLimiter != nil {
-		for {
-			limited, context, err := c.rateLimiter.RateLimitCtx(ctx, c.baseUrl.String(), 1)
-			if err != nil {
-				return nil, err
-			}
-
-			if limited {
-				time.Sleep(context.RetryAfter)
-				continue
-			}
-
-			break
-		}
-	}
-
 	req, err := http.NewRequestWithContext(ctx, method, fullUrl.String(), body)
 	if err != nil {
 		return nil, err
@@ -645,9 +490,8 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 	return pr, nil
 }
 
-func getRoundTripper(cfg *Config, timeout int) (http.RoundTripper, error) {
+func getRoundTripper(cfg *Config, timeout int) http.RoundTripper {
 	var transport http.RoundTripper
-	var err error
 
 	defaultTransport := &http.Transport{
 		Dial: (&net.Dialer{
@@ -664,9 +508,7 @@ func getRoundTripper(cfg *Config, timeout int) (http.RoundTripper, error) {
 	transport = defaultTransport
 
 	if cfg.RetryEnabled {
-		if transport, err = NewRetryTransport(defaultTransport, cfg.RetryLimit); err != nil {
-			return nil, err
-		}
+		transport = NewRetryTransport(defaultTransport, cfg.RetryLimit)
 	}
 
 	if cfg.OTelEnabled {
@@ -674,14 +516,16 @@ func getRoundTripper(cfg *Config, timeout int) (http.RoundTripper, error) {
 			transport,
 			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
 			otelhttp.WithMeterProvider(otel.GetMeterProvider()),
-			otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
-				return otelhttptrace.NewClientTrace(ctx,
-					otelhttptrace.WithoutSubSpans(),
-					otelhttptrace.WithTracerProvider(otel.GetTracerProvider()),
-				)
-			}),
+			otelhttp.WithClientTrace(
+				func(ctx context.Context) *httptrace.ClientTrace {
+					return otelhttptrace.NewClientTrace(ctx,
+						otelhttptrace.WithoutSubSpans(),
+						otelhttptrace.WithTracerProvider(otel.GetTracerProvider()),
+					)
+				},
+			),
 		)
 	}
 
-	return transport, nil
+	return transport
 }

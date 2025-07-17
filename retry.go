@@ -26,7 +26,7 @@ type RetryTransport struct {
 }
 
 // NewRetryTransport wraps the supplied http transport with a retryable implementation
-func NewRetryTransport(transport *http.Transport, limit int) (*RetryTransport, error) {
+func NewRetryTransport(transport *http.Transport, limit int) *RetryTransport {
 	var retryLimit int
 	retryLimit = DefaultRetryLimit
 
@@ -37,7 +37,7 @@ func NewRetryTransport(transport *http.Transport, limit int) (*RetryTransport, e
 	return &RetryTransport{
 		transport: transport,
 		retryMax:  retryLimit,
-	}, nil
+	}
 }
 
 // RoundTrip implements the http.RoundTripper interface with retries
