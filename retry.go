@@ -12,12 +12,12 @@ const (
 	DefaultRetryMax int = 3
 )
 
-type ErrCopy struct {
+type ErrRetryCopy struct {
 	err error
 }
 
-func (e *ErrCopy) Error() string {
-	return "failed to copy request body: " + e.err.Error()
+func (e *ErrRetryCopy) Error() string {
+	return "error copying request body for retry: " + e.err.Error()
 }
 
 type RetryTransport struct {
@@ -48,7 +48,7 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		bodyBytes, err := io.ReadAll(req.Body)
 		if err != nil {
-			return nil, &ErrCopy{err}
+			return nil, &ErrRetryCopy{err}
 		}
 
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
