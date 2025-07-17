@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DefaultRetryMax int = 3
+	DefaultRetryLimit int = 3
 )
 
 type ErrRetryCopy struct {
@@ -26,17 +26,17 @@ type RetryTransport struct {
 }
 
 // NewRetryTransport wraps the supplied http transport with a retryable implementation
-func NewRetryTransport(transport *http.Transport, maxRetry int) (*RetryTransport, error) {
-	var retryCount int
-	retryCount = DefaultRetryMax
+func NewRetryTransport(transport *http.Transport, limit int) (*RetryTransport, error) {
+	var retryLimit int
+	retryLimit = DefaultRetryLimit
 
-	if maxRetry != 0 {
-		retryCount = maxRetry
+	if limit != 0 {
+		retryLimit = limit
 	}
 
 	return &RetryTransport{
 		transport: transport,
-		retryMax:  retryCount,
+		retryMax:  retryLimit,
 	}, nil
 }
 
