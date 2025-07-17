@@ -9,14 +9,11 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httptrace"
 	"net/url"
 	"os"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
+	"github.com/nxdir-s/telemetry"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 )
@@ -511,19 +508,7 @@ func getRoundTripper(cfg *Config, timeout int) http.RoundTripper {
 	}
 
 	if cfg.OTelEnabled {
-		transport = otelhttp.NewTransport(
-			transport,
-			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-			otelhttp.WithMeterProvider(otel.GetMeterProvider()),
-			otelhttp.WithClientTrace(
-				func(ctx context.Context) *httptrace.ClientTrace {
-					return otelhttptrace.NewClientTrace(ctx,
-						otelhttptrace.WithoutSubSpans(),
-						otelhttptrace.WithTracerProvider(otel.GetTracerProvider()),
-					)
-				},
-			),
-		)
+		transport = telemetry.NewTransport(transport)
 	}
 
 	return transport
