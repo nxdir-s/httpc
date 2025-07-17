@@ -113,8 +113,7 @@ func WithCredentials(ctx context.Context, id string, secret string, authUrl stri
 
 		credentials.Scopes = append(credentials.Scopes, scopes...)
 
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, c.http)
-		c.http = credentials.Client(ctx)
+		c.http = credentials.Client(context.WithValue(ctx, oauth2.HTTPClient, c.http))
 	}
 }
 
