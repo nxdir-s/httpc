@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/nxdir-s/telemetry v1.1.4
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.30.0
 )
 
 require (
