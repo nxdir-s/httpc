@@ -27,9 +27,7 @@ type RetryTransport struct {
 
 // NewRetryTransport wraps the supplied http transport with a retryable implementation
 func NewRetryTransport(transport *http.Transport, limit int) *RetryTransport {
-	var retryLimit int
-	retryLimit = DefaultRetryLimit
-
+	var retryLimit int = DefaultRetryLimit
 	if limit != 0 {
 		retryLimit = limit
 	}
