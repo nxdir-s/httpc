@@ -138,9 +138,14 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 		return nil, err
 	}
 
-	timeout := DefaultTimeout * int(time.Second)
+	var timeout int = DefaultTimeout * int(time.Second)
 	if cfg.Timeout != 0 {
 		timeout = cfg.Timeout
+	}
+
+	var byteLimit int64 = DefaultReadByteLimit
+	if cfg.ReadByteLimit != 0 {
+		byteLimit = cfg.ReadByteLimit
 	}
 
 	client := &Client{
@@ -149,7 +154,7 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 			Timeout:   time.Duration(timeout),
 			Transport: getRoundTripper(cfg, timeout),
 		},
-		limit: cfg.ReadByteLimit,
+		limit: byteLimit,
 	}
 
 	for _, opt := range opts {
@@ -190,9 +195,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -245,9 +248,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -300,9 +301,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -355,9 +354,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -410,9 +407,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -465,9 +460,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64
-		limit = int64(DefaultReadByteLimit)
-
+		var limit int64 = int64(DefaultReadByteLimit)
 		if c.limit != 0 {
 			limit = c.limit
 		}
@@ -494,8 +487,6 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 }
 
 func getRoundTripper(cfg *Config, timeout int) http.RoundTripper {
-	var transport http.RoundTripper
-
 	defaultTransport := &http.Transport{
 		Dial: (&net.Dialer{
 			Timeout: time.Duration(timeout),
@@ -508,7 +499,7 @@ func getRoundTripper(cfg *Config, timeout int) http.RoundTripper {
 		TLSHandshakeTimeout: time.Duration(timeout),
 	}
 
-	transport = defaultTransport
+	var transport http.RoundTripper = defaultTransport
 
 	if cfg.RetryEnabled {
 		transport = NewRetryTransport(defaultTransport, cfg.RetryLimit)
