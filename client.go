@@ -195,12 +195,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
@@ -248,12 +243,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
@@ -301,12 +291,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
@@ -354,12 +339,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
@@ -407,12 +387,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
@@ -460,12 +435,7 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 		defer resp.Body.Close()
 		errBody := &bytes.Buffer{}
 
-		var limit int64 = int64(DefaultReadByteLimit)
-		if c.limit != 0 {
-			limit = c.limit
-		}
-
-		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, limit)); err != nil {
+		if _, err := io.Copy(errBody, io.LimitReader(resp.Body, c.limit)); err != nil {
 			return nil, &ErrCopy{err}
 		}
 
