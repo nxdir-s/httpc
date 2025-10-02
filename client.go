@@ -106,6 +106,7 @@ func WithCredentials(ctx context.Context, id string, secret string, authUrl stri
 			ClientID:     id,
 			ClientSecret: secret,
 			TokenURL:     authUrl,
+			Scopes:       make([]string, 0, len(scopes)),
 		}
 
 		credentials.Scopes = append(credentials.Scopes, scopes...)
