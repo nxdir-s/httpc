@@ -116,13 +116,15 @@ func WithCredentials(ctx context.Context, id string, secret string, authUrl stri
 }
 
 type Config struct {
-	TlsConfig     *tls.Config
-	BaseUrl       string
-	Timeout       int
-	OTelEnabled   bool
-	RetryEnabled  bool
-	RetryLimit    int
-	ReadByteLimit int64
+	TlsConfig             *tls.Config
+	BaseUrl               string
+	OTelEnabled           bool
+	RetryEnabled          bool
+	Timeout               int
+	RetryLimit            int
+	MaxIdleConnections    int
+	MaxConnectionsPerHost int
+	ReadByteLimit         int64
 }
 
 type Client struct {
@@ -149,11 +151,43 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 		byteLimit = cfg.ReadByteLimit
 	}
 
+	var maxIdleConns int = MaxIdleConns
+	if cfg.MaxIdleConnections != 0 {
+		maxIdleConns = cfg.MaxIdleConnections
+	}
+
+	var maxConnsPerHost int = MaxConnsPerHost
+	if cfg.MaxConnectionsPerHost != 0 {
+		maxConnsPerHost = cfg.MaxConnectionsPerHost
+	}
+
+	defaultTransport := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: time.Duration(timeout),
+		}).Dial,
+		TLSClientConfig:     cfg.TlsConfig,
+		MaxIdleConns:        maxIdleConns,
+		MaxConnsPerHost:     maxConnsPerHost,
+		MaxIdleConnsPerHost: maxConnsPerHost,
+		IdleConnTimeout:     time.Duration(timeout),
+		TLSHandshakeTimeout: time.Duration(timeout),
+	}
+
+	var transport http.RoundTripper = defaultTransport
+
+	if cfg.RetryEnabled {
+		transport = NewRetryTransport(defaultTransport, cfg.RetryLimit)
+	}
+
+	if cfg.OTelEnabled {
+		transport = telemetry.NewTransport(transport)
+	}
+
 	client := &Client{
 		baseUrl: baseUrl,
 		http: &http.Client{
 			Timeout:   time.Duration(timeout),
-			Transport: getRoundTripper(cfg, timeout),
+			Transport: transport,
 		},
 		limit: byteLimit,
 	}
@@ -455,30 +489,4 @@ func (c *Client) Stream(ctx context.Context, method string, resource string, bod
 	}()
 
 	return pr, nil
-}
-
-func getRoundTripper(cfg *Config, timeout int) http.RoundTripper {
-	defaultTransport := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: time.Duration(timeout),
-		}).Dial,
-		TLSClientConfig:     cfg.TlsConfig,
-		MaxIdleConns:        MaxIdleConns,
-		MaxConnsPerHost:     MaxConnsPerHost,
-		MaxIdleConnsPerHost: MaxConnsPerHost,
-		IdleConnTimeout:     time.Duration(timeout),
-		TLSHandshakeTimeout: time.Duration(timeout),
-	}
-
-	var transport http.RoundTripper = defaultTransport
-
-	if cfg.RetryEnabled {
-		transport = NewRetryTransport(defaultTransport, cfg.RetryLimit)
-	}
-
-	if cfg.OTelEnabled {
-		transport = telemetry.NewTransport(transport)
-	}
-
-	return transport
 }
