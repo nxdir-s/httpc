@@ -75,12 +75,10 @@ const (
 )
 
 const (
-	DefaultTimeout       int   = 10
-	DefaultReadByteLimit int64 = 15 * Mib
-
-	MaxRateLimitKeys int = 65536
-	MaxIdleConns     int = 100
-	MaxConnsPerHost  int = 100
+	DefaultTimeout         int   = 10
+	DefaultMaxIdleConns    int   = 100
+	DefaultMaxConnsPerHost int   = 100
+	DefaultReadByteLimit   int64 = 15 * Mib
 )
 
 type ClientOpt func(c *Client)
@@ -151,12 +149,12 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 		byteLimit = cfg.ReadByteLimit
 	}
 
-	var maxIdleConns int = MaxIdleConns
+	var maxIdleConns int = DefaultMaxIdleConns
 	if cfg.MaxIdleConnections != 0 {
 		maxIdleConns = cfg.MaxIdleConnections
 	}
 
-	var maxConnsPerHost int = MaxConnsPerHost
+	var maxConnsPerHost int = DefaultMaxConnsPerHost
 	if cfg.MaxConnectionsPerHost != 0 {
 		maxConnsPerHost = cfg.MaxConnectionsPerHost
 	}
