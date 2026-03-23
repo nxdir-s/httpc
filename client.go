@@ -13,7 +13,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/nxdir-s/telemetry"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 )
@@ -178,7 +177,7 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 	}
 
 	if cfg.OTelEnabled {
-		transport = telemetry.NewTransport(transport)
+		transport = NewOTelTransport(transport)
 	}
 
 	client := &Client{
