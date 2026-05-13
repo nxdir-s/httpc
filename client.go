@@ -224,7 +224,7 @@ func (c *Client) Send(ctx context.Context, method string, resource string, body 
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
@@ -272,7 +272,7 @@ func (c *Client) Get(ctx context.Context, resource string, headers map[string]st
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
@@ -320,7 +320,7 @@ func (c *Client) Post(ctx context.Context, resource string, body io.Reader, head
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
@@ -368,7 +368,7 @@ func (c *Client) Put(ctx context.Context, resource string, body io.Reader, heade
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
@@ -416,7 +416,7 @@ func (c *Client) Delete(ctx context.Context, resource string, body io.Reader, he
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
@@ -464,7 +464,7 @@ func (c *Client) Patch(ctx context.Context, resource string, body io.Reader, hea
 	}
 
 	if decoded != nil {
-		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, c.limit)).Decode(decoded); err != nil {
 			resp.Body.Close()
 			return nil, &ErrDecode{err}
 		}
