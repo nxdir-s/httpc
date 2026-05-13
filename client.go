@@ -205,7 +205,7 @@ func (c *Client) Send(ctx context.Context, method string, resource string, body 
 
 	fullUrl := c.baseUrl.ResolveReference(pathUrl)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullUrl.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, fullUrl.String(), body)
 	if err != nil {
 		return nil, &ErrNewRequest{err}
 	}
