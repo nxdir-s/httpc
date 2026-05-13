@@ -196,6 +196,43 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOpt) (*Client, er
 	return client, nil
 }
 
+// Send makes a request to the supplied endpoint and returns the response. If a struct pointer is supplied, the response body will be decoded into it
+func (c *Client) Send(ctx context.Context, method string, resource string, body io.Reader, headers map[string]string, decoded interface{}) (*http.Response, error) {
+	pathUrl, err := url.ParseRequestURI(resource)
+	if err != nil {
+		return nil, &ErrInvalidResource{err}
+	}
+
+	fullUrl := c.baseUrl.ResolveReference(pathUrl)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullUrl.String(), nil)
+	if err != nil {
+		return nil, &ErrNewRequest{err}
+	}
+
+	for key, val := range c.headers {
+		req.Header.Set(key, val)
+	}
+
+	for key, val := range headers {
+		req.Header.Set(key, val)
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, &ErrRequest{err}
+	}
+
+	if decoded != nil {
+		if err := json.NewDecoder(resp.Body).Decode(decoded); err != nil {
+			resp.Body.Close()
+			return nil, &ErrDecode{err}
+		}
+	}
+
+	return resp, nil
+}
+
 // Get makes a GET request to the supplied endpoint and returns the response. If a struct pointer is supplied, the response body will be decoded into it
 func (c *Client) Get(ctx context.Context, resource string, headers map[string]string, decoded interface{}) (*http.Response, error) {
 	pathUrl, err := url.ParseRequestURI(resource)
